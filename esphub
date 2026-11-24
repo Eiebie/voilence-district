@@ -1,0 +1,255 @@
+
+-- VIOLENCE DISTRICT STYLE ESP MENU
+-- For your own Roblox Studio experience
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+
+local LP = Players.LocalPlayer
+
+local ESP = true
+local TeamColors = true
+local ShowDistance = true
+local MaxDistance = 500
+
+local Tracked = {}
+
+-- GUI
+local GUI = Instance.new("ScreenGui")
+GUI.Name = "CustomESP"
+GUI.ResetOnSpawn = false
+GUI.Parent = LP:WaitForChild("PlayerGui")
+
+local Main = Instance.new("Frame")
+Main.Size = UDim2.fromOffset(245, 255)
+Main.Position = UDim2.new(0.5, -122, 0.5, -127)
+Main.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+Main.BorderSizePixel = 0
+Main.Parent = GUI
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 10)
+Corner.Parent = Main
+
+local Stroke = Instance.new("UIStroke")
+Stroke.Color = Color3.fromRGB(255, 50, 50)
+Stroke.Thickness = 1.5
+Stroke.Parent = Main
+
+-- Header
+local Header = Instance.new("TextLabel")
+Header.Size = UDim2.new(1, 0, 0, 38)
+Header.BackgroundColor3 = Color3.fromRGB(35, 35, 43)
+Header.Text = "  ⚡ PLAYER ESP"
+Header.TextColor3 = Color3.new(1, 1, 1)
+Header.TextSize = 17
+Header.Font = Enum.Font.GothamBold
+Header.TextXAlignment = Enum.TextXAlignment.Left
+Header.Parent = Main
+
+local HC = Instance.new("UICorner")
+HC.CornerRadius = UDim.new(0, 10)
+HC.Parent = Header
+
+-- Drag support (mouse and touch)
+local dragging = false
+local dragStart, startPos
+
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if dragging and (
+        input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch
+    ) then
+        local delta = input.Position - dragStart
+        Main.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+UIS.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1
+    or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+local function makeButton(text, y, callback)
+    local B = Instance.new("TextButton")
+    B.Size = UDim2.new(1, -20, 0, 32)
+    B.Position = UDim2.fromOffset(10, y)
+    B.BackgroundColor3 = Color3.fromRGB(43, 43, 53)
+    B.TextColor3 = Color3.new(1, 1, 1)
+    B.Font = Enum.Font.GothamSemibold
+    B.TextSize = 13
+    B.Text = text
+    B.Parent = Main
+
+    local C = Instance.new("UICorner")
+    C.CornerRadius = UDim.new(0, 6)
+    C.Parent = B
+
+    B.MouseButton1Click:Connect(function()
+        callback(B)
+    end)
+
+    return B
+end
+
+local function refreshButtons()
+    -- Updated by individual button callbacks
+end
+
+makeButton("ESP: ON", 48, function(B)
+    ESP = not ESP
+    B.Text = "ESP: " .. (ESP and "ON" or "OFF")
+end)
+
+makeButton("Team Colors: ON", 86, function(B)
+    TeamColors = not TeamColors
+    B.Text = "Team Colors: " .. (TeamColors and "ON" or "OFF")
+end)
+
+makeButton("Distance Display: ON", 124, function(B)
+    ShowDistance = not ShowDistance
+    B.Text = "Distance Display: " .. (ShowDistance and "ON" or "OFF")
+end)
+
+local DistanceLabel = Instance.new("TextLabel")
+DistanceLabel.Size = UDim2.new(1, -20, 0, 25)
+DistanceLabel.Position = UDim2.fromOffset(10, 164)
+DistanceLabel.BackgroundTransparency = 1
+DistanceLabel.TextColor3 = Color3.new(1, 1, 1)
+DistanceLabel.Font = Enum.Font.GothamBold
+DistanceLabel.TextSize = 13
+DistanceLabel.Text = "Max Distance: 500"
+DistanceLabel.Parent = Main
+
+makeButton("- 100 Distance", 191, function()
+    MaxDistance = math.max(100, MaxDistance - 100)
+    DistanceLabel.Text = "Max Distance: " .. MaxDistance
+end)
+
+makeButton("+ 100 Distance", 228, function()
+    MaxDistance = math.min(2000, MaxDistance + 100)
+    DistanceLabel.Text = "Max Distance: " .. MaxDistance
+end)
+
+-- ESP SYSTEM
+local function setupPlayer(player)
+    if player == LP then return end
+
+    local function setupCharacter(character)
+        local old = Tracked[player]
+        if old then
+            if old.highlight then old.highlight:Destroy() end
+            if old.billboard then old.billboard:Destroy() end
+        end
+
+        local head = character:WaitForChild("Head", 5)
+        if not head then return end
+
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "CustomPlayerESP"
+        highlight.Adornee = character
+        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        highlight.FillTransparency = 0.5
+        highlight.Parent = character
+
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "ESPDisplay"
+        billboard.Adornee = head
+        billboard.Size = UDim2.fromOffset(180, 35)
+        billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+        billboard.AlwaysOnTop = true
+        billboard.Parent = head
+
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.fromScale(1, 1)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = Color3.new(1, 1, 1)
+        label.TextStrokeTransparency = 0
+        label.Font = Enum.Font.GothamBold
+        label.TextScaled = true
+        label.Parent = billboard
+
+        Tracked[player] = {
+            highlight = highlight,
+            billboard = billboard,
+            label = label,
+            character = character
+        }
+    end
+
+    if player.Character then
+        setupCharacter(player.Character)
+    end
+
+    player.CharacterAdded:Connect(setupCharacter)
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+    setupPlayer(player)
+end
+
+Players.PlayerAdded:Connect(setupPlayer)
+
+Players.PlayerRemoving:Connect(function(player)
+    local data = Tracked[player]
+    if data then
+        data.highlight:Destroy()
+        data.billboard:Destroy()
+        Tracked[player] = nil
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    local myChar = LP.Character
+    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+
+    for player, data in pairs(Tracked) do
+        local char = data.character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+
+        local distance = root and (myRoot.Position - root.Position).Magnitude
+        local visible = ESP and root and humanoid
+            and humanoid.Health > 0 and distance <= MaxDistance
+
+        data.highlight.Enabled = not not visible
+        data.billboard.Enabled = not not visible
+
+        if visible then
+            local color = Color3.fromRGB(255, 45, 45)
+
+            if TeamColors and LP.Team ~= nil
+                and player.Team == LP.Team then
+                color = Color3.fromRGB(40, 255, 100)
+            end
+
+            data.highlight.FillColor = color
+            data.highlight.OutlineColor = color
+
+            data.label.TextColor3 = color
+            data.label.Text = player.Name ..
+                (ShowDistance and
+                ("\n" .. math.floor(distance) .. " studs") or "")
+        end
+    end
+end)
+
+print("Custom ESP Loaded!")
