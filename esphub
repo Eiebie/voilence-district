@@ -1,7 +1,4 @@
 
--- VIOLENCE DISTRICT STYLE ESP MENU
--- For your own Roblox Studio experience
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
